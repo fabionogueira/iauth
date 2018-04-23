@@ -1,6 +1,6 @@
 {
     "name": "iauth",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "",
     "main": "src/index.js",
     "dependencies": {
@@ -9,8 +9,14 @@
     "devDependencies": {
         "eslint": "^4.19.1"
     },
-    "scripts": {
+    "scripts": {},
+    "author": {
+        "name": "Fábio Nogueira",
+        "email": "fabio.bacabal@gmail.com"
     },
-    "author": "Fabio Nogueira",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/fabionogueira/iauth"
+    },
     "license": "ISC"
 }
