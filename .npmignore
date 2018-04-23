@@ -1,0 +1,8 @@
+.eslintignore
+.eslintrc.json
+.gitignore
+node_modules
+global.d.ts
+package-lock.json
+README.md
+tsconfig.json
