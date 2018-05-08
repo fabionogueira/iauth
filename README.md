@@ -3,7 +3,8 @@
 ``` javascript
 const iauth = require('iauth')
 
-//CONFIG
+// --- CONFIG ---
+// --------------
 iauth.config.set({
     tokenExpireIn: '10min', // sample
     tokenPublicKey: 'my public key',
@@ -11,44 +12,86 @@ iauth.config.set({
     sessionPath: 'path/to/sesions/directory'
 })
 
-// CREATING ACCESS TOKEN
+// --- CREATING ACCESS TOKEN ---
+// -----------------------------
 let access_token = iauth.Token.create({ /* payload data */}, '1d' /* optional expireIn  */)
 console.log(access_token)
 
-// CREATING SESSION
+// --- CREATING SESSION ---
+// ------------------------
 iauth.Session.create('filename-unique', access_token, 'device-name', {
     // data for session
 })
 
-// CHANGING SESSION
+// --- CHANGING SESSION ---
+// ------------------------
 let sessions = iauth.Session.read('filename-unique')
 sessions['device-name'].newdata = 1
 iauth.Session.write('filename-unique', sessions)
 
-// READ SESSION
+// --- READ SESSION ---
+// --------------------
 let session = iauth.Session.read('filename-unique')
 console.log(session)
 
-// TOKEN VALIDATION 
+// --- TOKEN VALIDATION ---
+// ------------------------
 let valid = iauth.Token.validate(access_token)
 console.log(session)
 
-// TOKEN DECODER
+// --- TOKEN DECODER ---
+// ---------------------
 let decoded = iauth.Token.decode(access_token)
 console.log(decoded)
 
-// SESSION DESTROY
+// --- SESSION DESTROY ---
+// -----------------------
 iauth.Session.destroy('filename-unique', access_token, 'device-name')
 
-// EXPRESS SAMPLE
+// --- iauth.Client ---
+// --------------------
+const myRouter = iauth.Client.router( 
+    {
+        memberOf: {
+            admin: true
+        },
+        // rule: true | undefined | function
+        rule(){ 
+            return true
+        }
+    },
+
+    (req, res) => {
+        Client.grant({
+            memberOf: {
+                admin: true
+            },
+            
+            allows: ()=>{
+                
+                res.json({
+                    decoded: iauth.Client.memberOf()
+                })
+
+            },
+            denied: ()=>{
+                res.json({
+                    decoded: 'not allowed'
+                })
+            }
+        })
+
+    })
+
+// --- EXPRESS SAMPLE ---
+// ----------------------
 const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const iauth = require('iauth')
 
-//CONFIG
 iauth.config.set({
-    tokenExpireIn: '10min', // sample
+    tokenExpireIn: '10min',
     tokenPublicKey: 'my public key',
     tokenPrivateKey: 'my private key',
     sessionPath: 'path/to/sesions/directory'

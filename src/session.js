@@ -4,6 +4,9 @@ const fs = require('fs')
 
 let session_path
 
+/**
+ * @class
+ */
 class Session {
     /**
      * @param {Object} options 
@@ -66,11 +69,11 @@ class Session {
         let obj
         let file = `${session_path}/${id}`
         
-        // cria o arquivo de sessão do usuário se não existir
-        fs.closeSync(fs.openSync(file, 'a'))
-
+        
         // obtém o conteúdo do arquivo
         try{
+            // cria o arquivo de sessão do usuário se não existir
+            fs.closeSync(fs.openSync(file, 'a'))
             data = fs.readFileSync(file)
             obj = JSON.parse(data)
         }catch(_e){
@@ -87,10 +90,14 @@ class Session {
     static write(id, sessions){
         let file = `${session_path}/${id}`
        
-        // cria o arquivo de sessão do usuário se não existir
-        fs.closeSync(fs.openSync(file, 'a'))
+        try {
+            // cria o arquivo de sessão do usuário se não existir
+            fs.closeSync(fs.openSync(file, 'a'))
+            fs.writeFileSync(file, JSON.stringify(sessions, null, 4))
 
-        fs.writeFileSync(file, JSON.stringify(sessions, null, 4))
+        } catch (error) {
+            console.log(error)
+        }
     }
 }
 

@@ -3,6 +3,17 @@
 const Session = require('./session')
 const Token = require('./token')
 
+/**
+ * @typedef {Object} IConfig
+ * @property {string} [tokenExpireIn='10min']
+ * @property {string} [tokenPrivateKey]
+ * @property {string} tokenPublicKey
+ * @property {string} [sessionPath]
+ */
+
+/**
+ * @type {IConfig}
+ */
 let _config = {
     tokenExpireIn: '10min',
     tokenPublicKey: '',
@@ -15,6 +26,9 @@ module.exports = {
         return _config
     },
 
+    /**
+     * @param {IConfig} config 
+     */
     set(config){
         _config = config
 

@@ -2,6 +2,9 @@
 
 const jwt = require('jsonwebtoken');
 
+/**
+ * @class
+ */
 class Token {
     /**
      * Set keys
