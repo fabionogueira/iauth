@@ -34,7 +34,7 @@ module.exports = {
 
         Token.keys(config.tokenPublicKey, config.tokenPrivateKey)
         Session.config({
-            path: config.sessionPath
+            path: config.sessionPath || './'
         })
 
         return this

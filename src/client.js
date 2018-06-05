@@ -1,5 +1,6 @@
 // @ts-check
 
+const request = require("request")
 const Token = require('./token')
 
 class Client {
@@ -115,6 +116,102 @@ class Client {
                     }
                 })
             })
+        }
+
+        return irouter
+    }
+
+    /**
+     * @param {{method?: string, memberOf?: any, rule?: string, request?: Function, url: string, headers:{}, requireAuthentication:boolean}} options 
+     */
+    static proxy(options){
+        options.method = options.method || 'get'
+        options.method = options.method.toLowerCase()
+        options.requireAuthentication = options.requireAuthentication == undefined ? true : options.requireAuthentication 
+
+        function irouter(req, res){
+            let params = (req.originalUrl.split('?')[1] || '').split('&').reduce(function(map, obj){ var a=obj.split('='); map[a[0]]=a[1]; return map }, {})
+            let token = req.headers['access_token'] || params.access_token || req.body.access_token || req.query.access_token || req.query.token
+            
+            if (options.requireAuthentication){
+                Client.setToken(token, error => {
+                    if (error){
+                        return res.status(401).json(error)
+                    }
+
+                    Client.grant({
+                        memberOf: options.memberOf,
+                        rule: options.rule,
+                        allows: ()=>{
+                            doProxy(req, res)
+                        },
+                        denied: ()=>{
+                            res.status(401).json({
+                                name: 'UnauthorizedAccess',
+                                message: 'Unauthorized Access'
+                            })
+                        }
+                    })
+                })
+            } else {
+                doProxy(req, res)
+            }
+        }
+
+        function doProxy(req, res){
+            let i
+            let params = (req.originalUrl.split('?')[1] || '')
+            let requestOptions = {
+                url    : options.url + (params ? `?${params}` : ''), 
+                method : options.method,
+                headers: {},
+                body   : req.body
+            }
+            
+            if (options.headers){
+                for (i in options.headers) {
+                    requestOptions.headers[i] = req.headers[i] === undefined ? options.headers[i] : req.headers[i]
+                }
+            } else {
+                requestOptions.headers = req.headers
+            }
+
+            Object.keys(requestOptions.headers).forEach(item => {
+                if (requestOptions.headers[item]===undefined || requestOptions.headers[item]=='undefined' || 
+                    requestOptions.headers[item]===null || requestOptions.headers[item]=='null'){
+                    delete(requestOptions.headers[item])
+                }
+            })
+
+            if (requestOptions.body){
+                requestOptions.json = true
+            }
+
+            // data = typeof(options.request)=='function' ? options.request(data || {}) : (data || r.request);
+            process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+      
+            function complete(err, response){
+                let i
+
+                if (response){
+                    for (i in response.headers){
+                        res.set(i, response.headers[i])
+                    }
+    
+                    res.status(response.statusCode)
+                }
+
+                if (options.request){
+                    options.request(err, response, ()=>{
+                        res.send(response ? response.body : err)
+                    })
+                } else {
+                    res.send(response ? response.body : err)
+                }
+
+            }
+
+            request(requestOptions, complete);
         }
 
         return irouter
