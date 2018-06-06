@@ -122,12 +122,13 @@ class Client {
     }
 
     /**
-     * @param {{method?: string, memberOf?: any, rule?: string, request?: Function, url: string, headers:{}, requireAuthentication:boolean}} options 
+     * @param {{method?: string, memberOf?: any, rule?: string, preserveHeaders?:boolean, request?: Function, response?:Function, options?:{}, url: string, headers:{}, requireAuthentication:boolean}} options 
      */
     static proxy(options){
         options.method = options.method || 'get'
         options.method = options.method.toLowerCase()
         options.requireAuthentication = options.requireAuthentication == undefined ? true : options.requireAuthentication 
+        options.preserveHeaders = options.preserveHeaders == undefined ? true : options.preserveHeaders
 
         function irouter(req, res){
             let params = (req.originalUrl.split('?')[1] || '').split('&').reduce(function(map, obj){ var a=obj.split('='); map[a[0]]=a[1]; return map }, {})
@@ -183,8 +184,18 @@ class Client {
                 }
             })
 
-            if (requestOptions.body){
+            if (options.options){
+                Object.keys(options.options).forEach(key => {
+                    requestOptions[key] = options.options[key]
+                })
+            }
+
+            if (!requestOptions.gzip && requestOptions.body){
                 requestOptions.json = true
+            }
+
+            if (Object.keys(requestOptions.body).length==0){
+                delete(requestOptions.body)
             }
 
             // data = typeof(options.request)=='function' ? options.request(data || {}) : (data || r.request);
@@ -193,7 +204,7 @@ class Client {
             function complete(err, response){
                 let i
 
-                if (response){
+                if (response && options.preserveHeaders){
                     for (i in response.headers){
                         res.set(i, response.headers[i])
                     }
@@ -201,10 +212,11 @@ class Client {
                     res.status(response.statusCode)
                 }
 
-                if (options.request){
-                    options.request(err, response, ()=>{
-                        res.send(response ? response.body : err)
+                if (options.response){
+                    options.response(err, response, (newBody) => {
+                        res.send(newBody ? newBody : response ? response.body : err)
                     })
+
                 } else {
                     res.send(response ? response.body : err)
                 }
