@@ -1,6 +1,7 @@
 // @ts-check
 
 const jwt = require('jsonwebtoken');
+const lzw = require('./lzw')
 
 /**
  * @class
@@ -19,9 +20,14 @@ class Token {
     /**
      * Create new token
      * @param {*} payload 
-     * @param {*} expiresIn 
+     * @param {string} expiresIn 
+     * @param {boolean} encode
      */
-    static create(payload={}, expiresIn='1d'){
+    static create(payload = {}, expiresIn='1d', encode=false){
+        if (encode) {
+            payload = {_:lzw.encode(JSON.stringify(payload))}
+        }
+
         //cria o token com base na chave privada
         return jwt.sign(payload, this._privateKey, {
             "algorithm": 'RS256',
@@ -34,15 +40,42 @@ class Token {
      */
     static validate(token) {
         //valida o token usando a chave pública
-        return jwt.verify(token, this._publicKey)
+
+        /** @type {any} */
+        let decoded = jwt.verify(token, this._publicKey)
+        let json
+
+        if (decoded && decoded._){
+            json = JSON.parse(lzw.decode(decoded._))
+
+            json.exp = decoded.exp
+            json.iat = decoded.iat
+
+            decoded = json
+        }
+
+        return decoded
     }
 
     /**
      * @param {string} token
-     * @returns {any}
+     * @returns {*}
      */
     static decoder(token){
-        return jwt.decode(token)
+        /** @type {any} */
+        let decoded = jwt.decode(token)
+        let json
+
+        if (decoded && decoded._){
+            json = JSON.parse(lzw.decode(decoded._))
+
+            json.exp = decoded.exp
+            json.iat = decoded.iat
+
+            decoded = json
+        }
+
+        return decoded
     }
 }
 

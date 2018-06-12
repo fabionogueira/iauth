@@ -122,7 +122,7 @@ class Client {
     }
 
     /**
-     * @param {{method?: string, memberOf?: any, rule?: string, preserveHeaders?:boolean, request?: Function, response?:Function, options?:{}, url: string, headers:{}, requireAuthentication:boolean}} options 
+     * @param {{method?: string, memberOf?: any, rule?: string, preserveHeaders?:boolean, request?: Function, response?:Function, options?:{params?:string}, url: string, headers:{}, requireAuthentication:boolean}} options 
      */
     static proxy(options){
         options.method = options.method || 'get'
@@ -161,9 +161,10 @@ class Client {
 
         function doProxy(req, res){
             let i
+            let opt = options.options || {}
             let params = (req.originalUrl.split('?')[1] || '')
             let requestOptions = {
-                url    : options.url + (params ? `?${params}` : ''), 
+                url    : options.url + (opt.params != undefined ? `?${opt.params}` : ((options.url.split('?').length==1 ? '?' : '&') + (params ? `${params}` : ''))), 
                 method : options.method,
                 headers: {},
                 body   : req.body
