@@ -22,7 +22,7 @@ class Client {
 
         for (group in memberOf){
             r = options.memberOf[group]
-            
+
             if (typeof(r) == 'function'){
                 r = r()
             }
