@@ -60,12 +60,11 @@ class Client {
         let decoded
         let error = null
 
-        this._decoded = null
-
         try {
             decoded = Token.validate(token)
             this._token = token
             this._decoded = Token.decoder(token)
+
         } catch (err) {
             error = err
         }
@@ -94,35 +93,41 @@ class Client {
         options = arguments.length > 1 ? (options || {})  : {}
         callback= arguments.length > 1 ? callback : options
 
+        options.requireAuthentication = options.requireAuthentication == undefined ? true : options.requireAuthentication 
+
         function irouter(req, res){
             let token = req.headers['access_token'] || req.params.access_token || req.body.access_token
             
-            Client.setToken(token, (error) => {
-                if (error){
-                    return res.status(401).json(error)
-                }
-
-                Client.grant({
-                    memberOf: options.memberOf,
-                    rule: options.rule,
-                    allows: ()=>{
-                        callback(req, res)        
-                    },
-                    denied: ()=>{
-                        res.status(401).json({
-                            name: 'UnauthorizedAccess',
-                            message: 'Unauthorized Access'
-                        })
+            if (options.requireAuthentication) {
+                Client.setToken(token, (error) => {
+                    if (error){
+                        return res.status(401).json(error)
                     }
+    
+                    Client.grant({
+                        memberOf: options.memberOf,
+                        rule: options.rule,
+                        allows: ()=>{
+                            callback(req, res)        
+                        },
+                        denied: ()=>{
+                            res.status(401).json({
+                                name: 'UnauthorizedAccess',
+                                message: 'Unauthorized Access'
+                            })
+                        }
+                    })
                 })
-            })
+            } else {
+                callback(req, res)
+            }
         }
 
         return irouter
     }
 
     /**
-     * @param {{method?: string, memberOf?: any, rule?: string, preserveHeaders?:boolean, request?: Function, response?:Function, options?:{params?:string}, url: string, headers:{}, requireAuthentication:boolean}} options 
+     * @param {{method?: string, memberOf?: any, sleep?:number, rule?: string, preserveHeaders?:boolean, request?: Function, response?:Function, options?:{params?:string}, url: string, headers:{}, requireAuthentication:boolean}} options 
      */
     static proxy(options){
         options.method = options.method || 'get'
@@ -133,7 +138,8 @@ class Client {
         function irouter(req, res){
             let params = (req.originalUrl.split('?')[1] || '').split('&').reduce(function(map, obj){ var a=obj.split('='); map[a[0]]=a[1]; return map }, {})
             let token = req.headers['access_token'] || params.access_token || req.body.access_token || req.query.access_token || req.query.token
-            
+            let args = arguments[2]
+
             if (options.requireAuthentication){
                 Client.setToken(token, error => {
                     if (error){
@@ -155,11 +161,11 @@ class Client {
                     })
                 })
             } else {
-                doProxy(req, res)
+                doProxy(req, res, args)
             }
         }
 
-        function doProxy(req, res){
+        function doProxy(req, res, args){
             let i
             let opt = options.options || {}
             let params = (req.originalUrl.split('?')[1] || '')
@@ -214,17 +220,42 @@ class Client {
                 }
 
                 if (options.response){
-                    options.response(err, response, (newBody) => {
+                    options.response(err, response, (error, newBody) => {
+                        if (error && error.code == 'ECONNREFUSED') {
+                            res.destroy()
+                            return res.end()
+                        }
+
                         res.send(newBody ? newBody : response ? response.body : err)
                     })
 
                 } else {
+                    if (err && err.code == 'ECONNREFUSED') {
+                        res.destroy()
+                        return res.end()
+                    }
+
                     res.send(response ? response.body : err)
                 }
 
             }
 
-            request(requestOptions, complete);
+            function requestNext(){
+                if (options.sleep){
+                    setTimeout(()=>{
+                        request(requestOptions, complete);
+                    }, options.sleep)
+                } else {
+                    request(requestOptions, complete)
+                }
+            }
+
+            if (typeof(options.request) == 'function') {
+                options.request(req, requestOptions, requestNext, args)
+            } else {
+                requestNext()
+            }
+            
         }
 
         return irouter
