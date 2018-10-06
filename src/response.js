@@ -15,7 +15,8 @@ let response = {
         session_application_not_found: fn_error('Token not found in session'),
         token_invalidate_data: fn_error('Invalidate token data'),
         token_expired: fn_error('Token expired'),
-        unsupported_over_http: fn_error('IAuth only supports the calls over https')
+        unsupported_over_http: fn_error('IAuth only supports the calls over https'),
+        undefined_error: fn_error('Undefined error')
     },
     
     // 200
