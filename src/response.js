@@ -16,7 +16,20 @@ let response = {
         token_invalidate_data: fn_error('Invalidate token data'),
         token_expired: fn_error('Token expired'),
         unsupported_over_http: fn_error('IAuth only supports the calls over https'),
-        undefined_error: fn_error('Undefined error')
+        undefined_error: fn_error('Undefined error'),
+        custom(res, definition, payload = {}){
+            let json
+            let status = payload.status || 401
+
+            delete(payload.status)
+            
+            json = Object.assign({
+                error_code: definition.code,
+                error_description: definition.description
+            }, payload)
+
+            res.status(status).json(json)
+        }
     },
     
     // 200
