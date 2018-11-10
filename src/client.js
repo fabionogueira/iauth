@@ -84,6 +84,21 @@ class Client {
         return this._decoded ? (this._decoded.memberOf || {}) : {}
     }
 
+    static isMemberOf(groups = {}){
+        let group, r
+        let memberOf = this.memberOf()
+        
+        for (group in memberOf){
+            r = groups[group]
+
+            if (r){
+                return true
+            }
+        }
+
+        return false
+    }
+    
     /**
      * @param {object | function} options
      * @param {function} [callback]
