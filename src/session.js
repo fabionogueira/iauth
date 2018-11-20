@@ -5,52 +5,47 @@ const fs = require('fs')
 let session_path
 
 /**
- * @class
- */
+* @class
+*/
 class Session {
     /**
-     * @param {Object} options 
-     */
-    static config(options){
+    * @param {Object} options
+    */
+    static config(options) {
         session_path = options.path
-        if (!fs.existsSync(session_path)){
+        if (!fs.existsSync(session_path)) {
             fs.mkdirSync(session_path)
         }
     }
 
     /**
-     * Create new session
-     * @param {string} id 
-     * @param {string} token 
-     * @param {string} client_device 
-     * @param {object} content 
-     */
-    static create(id, token, client_device, content = null){
-        let sessions = this.read(id) || {}
+    * Create new session
+    * @param {string} id
+    * @param {string} token
+    * @param {object} content
+    */
+    static create(id, token, content = null) {
+        //let session = this.read(file) || {}
         let session = {
             token,
             created: new Date()
         }
 
         session = Object.assign({}, session, content)
-        sessions[client_device] = session
 
-        this.write(id, sessions)
+        this.write(id, session)
     }
 
     /**
-     * 
-     * @param {string} id 
-     * @param {string} token 
-     * @param {string} client_device 
-     */
-    static destroy(id, token, client_device){
-        let sessions = this.read(id) || {}
-        let session = sessions[client_device]
+    *
+    * @param {string} id
+    * @param {string} token
+    */
+    static destroy(id, token) {
+        let session = this.read(id)
 
-        if (session && session.token == token){
-            delete(sessions[client_device])
-            this.write(id, sessions);
+        if (session && session.token == token) {
+            this.write(id, {});
 
             return true
         }
@@ -59,41 +54,61 @@ class Session {
     }
 
     /**
-     * @param {string} id 
-     */
-    static read(id){
-        /**
-         * @type {any}
-         */
-        let data
-        let obj
-        let file = `${session_path}/${id}`
+    * @param {string} id
+    */
+    static get(id) {
+        /** @type {any} */
+        let data, session
+        let path = `${session_path}/${id}`
         
-        
-        // obtém o conteúdo do arquivo
-        try{
-            // cria o arquivo de sessão do usuário se não existir
-            fs.closeSync(fs.openSync(file, 'a'))
-            data = fs.readFileSync(file)
-            obj = JSON.parse(data)
-        }catch(_e){
-            obj = null
+        if (id && fs.existsSync(path)){
+            // obtém o conteúdo do arquivo
+            try {
+                data = fs.readFileSync(path)
+                session = JSON.parse(data)
+
+            } catch (_e) {
+                session = null
+            }
         }
 
-        return obj
+        return session
     }
 
     /**
-     * @param {string} id 
-     * @param {any} sessions 
-     */
-    static write(id, sessions){
-        let file = `${session_path}/${id}`
-       
+    * @param {string} file
+    */
+    static read(file) {
+        /**
+        * @type {any}
+        */
+        let data
+        let session
+        let path = `${session_path}/${file}`
+
+        // obtém o conteúdo do arquivo
         try {
             // cria o arquivo de sessão do usuário se não existir
-            fs.closeSync(fs.openSync(file, 'a'))
-            fs.writeFileSync(file, JSON.stringify(sessions, null, 4))
+            fs.closeSync(fs.openSync(path, 'a'))
+            data = fs.readFileSync(path)
+            session = JSON.parse(data)
+        } catch (_e) {
+            session = null
+        }
+
+        return session
+    }
+
+    /**
+    * @param {string} file
+    * @param {any} sessionData
+    */
+    static write(file, sessionData) {
+        let path = `${session_path}/${file}`
+        try {
+            // cria o arquivo de sessão do usuário se não existir
+            fs.closeSync(fs.openSync(path, 'a'))
+            fs.writeFileSync(path, JSON.stringify(sessionData, null, 4))
 
         } catch (error) {
             console.log(error)
