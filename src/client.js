@@ -2,6 +2,7 @@
 
 const request = require("request")
 const Token = require('./token')
+const {Schema} = require('fn-schemavalidator')
 
 class Client {
     /**
@@ -60,11 +61,12 @@ class Client {
         let decoded
         let error = null
 
+        this['_decoded'] = null
+
         try {
             decoded = Token.validate(token)
             this._token = token
             this._decoded = Token.decoder(token)
-
         } catch (err) {
             error = err
         }
@@ -98,51 +100,81 @@ class Client {
 
         return false
     }
-    
+
     /**
      * @param {object | function} options
      * @param {function} [callback]
      * @returns {function | any} 
      */
     static router(options, callback){
+        let schema
+
         options = arguments.length > 1 ? (options || {})  : {}
         callback= arguments.length > 1 ? callback : options
 
-        options.requireAuthentication = options.requireAuthentication == undefined ? true : options.requireAuthentication 
+        if (options.schema){
+            schema = new Schema(options.schema)
+        }
 
         function irouter(req, res){
-            let token = req.headers['access_token'] || req.params.access_token || req.body.access_token
+            let token
             
-            if (options.requireAuthentication) {
-                Client.setToken(token, (error) => {
-                    if (error){
-                        return res.status(401).json(error)
-                    }
-    
-                    Client.grant({
-                        memberOf: options.memberOf,
-                        rule: options.rule,
-                        allows: ()=>{
-                            callback(req, res)        
-                        },
-                        denied: ()=>{
-                            res.status(401).json({
-                                name: 'UnauthorizedAccess',
-                                message: 'Unauthorized Access'
-                            })
-                        }
-                    })
+            if (!req.secure && req.get('x-forwarded-proto') !== 'https' && req.host !== "localhost") {
+                return res.status(401).json({
+                    error: 'unsupported_over_http',
+                    message: 'IAuth only supports the calls over https'
                 })
-            } else {
-                callback(req, res)
             }
+
+            if (options.memberOf == 'public'){
+                return callRouter(req, res)
+            }
+
+            token = req.headers['access_token'] || req.params.access_token || req.body.access_token
+            
+            Client.setToken(token, (error) => {
+                if (error){
+                    return res.status(401).json(error)
+                }
+
+                Client.grant({
+                    memberOf: options.memberOf,
+                    rule: options.rule,
+                    allows: ()=>{
+                        callRouter(req, res)      
+                    },
+                    denied: ()=>{
+                        res.status(401).json({
+                            error: 'unauthorized_access',
+                            message: 'Unauthorized Access'
+                        })
+                    }
+                })
+            })
+        }
+
+        function callRouter(req, res){
+            let json, error
+
+            if (schema){
+                json = options.json(req)
+
+                error = schema.validate(json)
+
+                if (error !== true){
+                    error.error = 'json_validate_error'
+                    return res.status(401).json(error)
+                }
+            }
+
+            callback(json, res, req)
         }
 
         return irouter
     }
 
     /**
-     * @param {{method?: string, memberOf?: any, sleep?:number, rule?: string, preserveHeaders?:boolean, request?: Function, response?:Function, options?:{params?:string}, url: string, headers:{}, requireAuthentication:boolean}} options 
+     * @param {{method?: string, memberOf?: any, rule?: string, preserveHeaders?:boolean, request?: Function, response?:Function, options?:{params?:string}, url: string, headers:{}, requireAuthentication:boolean}} options 
      */
     static proxy(options){
         options.method = options.method || 'get'
@@ -153,8 +185,7 @@ class Client {
         function irouter(req, res){
             let params = (req.originalUrl.split('?')[1] || '').split('&').reduce(function(map, obj){ var a=obj.split('='); map[a[0]]=a[1]; return map }, {})
             let token = req.headers['access_token'] || params.access_token || req.body.access_token || req.query.access_token || req.query.token
-            let args = arguments[2]
-
+            
             if (options.requireAuthentication){
                 Client.setToken(token, error => {
                     if (error){
@@ -176,11 +207,11 @@ class Client {
                     })
                 })
             } else {
-                doProxy(req, res, args)
+                doProxy(req, res)
             }
         }
 
-        function doProxy(req, res, args){
+        function doProxy(req, res){
             let i
             let opt = options.options || {}
             let params = (req.originalUrl.split('?')[1] || '')
@@ -235,42 +266,17 @@ class Client {
                 }
 
                 if (options.response){
-                    options.response(err, response, (error, newBody) => {
-                        if (error && error.code == 'ECONNREFUSED') {
-                            res.destroy()
-                            return res.end()
-                        }
-
+                    options.response(err, response, (newBody) => {
                         res.send(newBody ? newBody : response ? response.body : err)
                     })
 
                 } else {
-                    if (err && err.code == 'ECONNREFUSED') {
-                        res.destroy()
-                        return res.end()
-                    }
-
                     res.send(response ? response.body : err)
                 }
 
             }
 
-            function requestNext(){
-                if (options.sleep){
-                    setTimeout(()=>{
-                        request(requestOptions, complete);
-                    }, options.sleep)
-                } else {
-                    request(requestOptions, complete)
-                }
-            }
-
-            if (typeof(options.request) == 'function') {
-                options.request(req, requestOptions, requestNext, args)
-            } else {
-                requestNext()
-            }
-            
+            request(requestOptions, complete);
         }
 
         return irouter
