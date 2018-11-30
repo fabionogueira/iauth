@@ -134,7 +134,10 @@ class Client {
             
             Client.setToken(token, (error) => {
                 if (error){
-                    return res.status(401).json(error)
+                    return res.status(401).json({
+                        error: error.name,
+                        message: error.message
+                    })
                 }
 
                 Client.grant({
