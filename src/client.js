@@ -2,7 +2,7 @@
 
 const request = require("request")
 const Token = require('./token')
-const {Schema} = require('fn-schemavalidator')
+const Schema = require('fn-schemavalidator')
 
 class Client {
     /**
@@ -157,10 +157,33 @@ class Client {
         }
 
         function callRouter(req, res){
-            let json, error
+            let json = {} 
+            let k, item, map, error, arr, obj, value
 
             if (schema){
-                json = options.json(req)
+                map = schema.getMap() 
+
+                for (k in map){
+                    item = map[k]
+
+                    if (item.$leaf && item.map){
+                        arr = k.split('/')
+                        value = Schema.find(req, '/' + item.map.split('.').join('/'))
+                        obj = json
+                        
+                        arr.forEach((key, index) => {
+                            if (key) {
+                                obj[key] = obj[key] || {}
+                                
+                                if (index == arr.length - 1){
+                                    obj[key] = item.type == 'number' ? Number(value) : value
+                                } else {
+                                    obj = obj[key]
+                                }
+                            }
+                        })
+                    }
+                }
 
                 error = schema.validate(json)
 

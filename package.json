@@ -1,11 +1,11 @@
 {
     "name": "iauth",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "description": "",
     "main": "src/index.js",
     "dependencies": {
-        "fn-schemavalidator": "^1.0.0",
-        "jsonwebtoken": "^8.2.0"
+        "fn-schemavalidator": "^1.0.3",
+        "jsonwebtoken": "^8.4.0"
     },
     "devDependencies": {
         "eslint": "^4.19.1"
