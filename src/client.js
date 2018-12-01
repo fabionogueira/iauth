@@ -166,7 +166,7 @@ class Client {
                 for (k in map){
                     item = map[k]
 
-                    if (item.$leaf && item.map){
+                    if ((item.$leaf || item.type=='array') && item.map){
                         arr = k.split('/')
                         value = Schema.find(req, '/' + item.map.split('.').join('/'))
                         obj = json
