@@ -176,7 +176,10 @@ class Client {
                                 obj[key] = obj[key] || {}
                                 
                                 if (index == arr.length - 1){
-                                    obj[key] = item.type == 'number' ? Number(value) : value
+                                    obj[key] = item.type == 'number' ? Number(value) :
+                                               item.type == 'boolean' ? toBoolean(value) :
+                                               value
+
                                 } else {
                                     obj = obj[key]
                                 }
@@ -307,6 +310,14 @@ class Client {
 
         return irouter
     }
+}
+
+function toBoolean(value){
+    if (value=='true') return true
+    if (value===true) return true
+    if (value=='false') return false
+    if (value===false) return false
+    return value
 }
 
 module.exports = Client
