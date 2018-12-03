@@ -8,10 +8,10 @@ class Client {
     /**
      * @param {*} options 
      */
-    static grant(options = {}){
+    static grant(options = {}, req = null){
         let group, r
         let memberOf = this.memberOf()
-        let rule = typeof(options.rule) == 'function' ? options.rule() : (options.rule === undefined ? true : options.rule)
+        let rule = typeof(options.rule) == 'function' ? options.rule(memberOf, this._decoded || {}, req) : (options.rule === undefined ? true : options.rule)
         
         if (!options.memberOf){
             return allows()
@@ -25,7 +25,7 @@ class Client {
             r = options.memberOf[group]
 
             if (typeof(r) == 'function'){
-                r = r()
+                r = r(memberOf, this._decoded || {}, req)
             }
 
             if (r){
@@ -152,7 +152,7 @@ class Client {
                             message: 'Unauthorized Access'
                         })
                     }
-                })
+                }, req)
             })
         }
 
@@ -176,7 +176,7 @@ class Client {
                                 obj[key] = obj[key] || {}
                                 
                                 if (index == arr.length - 1){
-                                    obj[key] = item.type == 'number' ? Number(value) :
+                                    obj[key] = item.type == 'number' ? toNumber(value) :
                                                item.type == 'boolean' ? toBoolean(value) :
                                                value
 
@@ -310,6 +310,12 @@ class Client {
 
         return irouter
     }
+}
+
+function toNumber(value){
+    let n = Number(value)
+
+    return isNaN(n) ? null : n
 }
 
 function toBoolean(value){
