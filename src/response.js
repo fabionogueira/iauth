@@ -4,8 +4,8 @@ module.exports = {
     // 401 sample: {code: 'unsupported_over_http', message: 'IAuth only supports the calls over https'}
     error(res, definition, vars = {}){
         let json = {
-            error: vars.error || definition.error || definition.code || '0',
-            message: vars.message || definition.message
+            error: vars.error || definition.error || definition.code || definition.name || '0',
+            message: vars.message || (definition.original && definition.original.message ? definition.original.message : definition.message)
         }
 
         Object.keys(vars).forEach(key => {
