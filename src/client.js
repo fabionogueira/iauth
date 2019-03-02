@@ -116,14 +116,18 @@ class Client {
             schema = new Schema(options.schema)
         }
 
+        options.secure = options.secure == undefined ? true : options.secure
+
         function irouter(req, res){
             let token
             
-            if (!req.secure && req.get('x-forwarded-proto') !== 'https' && req.host !== "localhost") {
-                return res.status(401).json({
-                    error: 'unsupported_over_http',
-                    message: 'IAuth only supports the calls over https'
-                })
+            if (options.secure == true){
+                if (!req.secure && req.get('x-forwarded-proto') !== 'https' && req.host !== "localhost") {
+                    return res.status(401).json({
+                        error: 'unsupported_over_http',
+                        message: 'IAuth only supports the calls over https'
+                    })
+                }
             }
 
             if (options.memberOf == 'public'){
