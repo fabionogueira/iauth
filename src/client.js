@@ -136,7 +136,7 @@ class Client {
 
             token = req.headers['access_token'] || req.params.access_token || req.body.access_token
             
-            Client.setToken(token, (error) => {
+            Client.setToken(token, (error, decoded) => {
                 if (error){
                     return res.status(401).json({
                         error: error.name,
@@ -148,7 +148,7 @@ class Client {
                     memberOf: options.memberOf,
                     rule: options.rule,
                     allows: ()=>{
-                        callRouter(req, res)      
+                        callRouter(req, res, decoded)      
                     },
                     denied: ()=>{
                         res.status(401).json({
@@ -160,7 +160,7 @@ class Client {
             })
         }
 
-        function callRouter(req, res){
+        function callRouter(req, res, decoded){
             let json = {} 
             let k, item, map, error, arr, obj, value
 
@@ -200,7 +200,7 @@ class Client {
                 }
             }
 
-            callback(json, res, req)
+            callback(json, res, req, decoded)
         }
 
         return irouter
@@ -319,7 +319,7 @@ class Client {
 function toNumber(value){
     let n = Number(value)
 
-    return isNaN(n) ? null : n
+    return isNaN(n) ? value : n
 }
 
 function toBoolean(value){
